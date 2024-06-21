@@ -1,0 +1,417 @@
+# Overview <img align="right" width="140" height="40" src="https://github.com/airacommunity/AIRA-Installation/assets/153823636/2aee8e84-f308-4494-a715-afd9421b606e">
+
+This guide provides detailed information on configuring the database and application server for installing AIRA on the CentOS/RHEL 9.x platform. The recommended stack has been thoroughly tested and is supported by the AIRA quality control team. The installation is intended for use with NGINX as the web server.
+
+> Kindly note that the content provided is subject to regular updates. It may not reflect the final version. Your understanding is appreciated.
+
+# Stack Components
+
+<table class="my-table">
+<tbody>
+<tr>
+<td width="300">Platform</td>
+<td width="600">CentOS/RHEL 9.x</td>
+</tr>
+<tr>
+<td width="300">Database</td>
+<td width="600">MySQL 8.4</td>
+</tr>
+<tr>
+<td width="300">Web Server</td>
+<td width="600">NGINX 1.x.x (Latest version)</td>
+</tr>
+<tr>
+<td width="300">Filesystem</td>
+<td width="600">xfs</td>
+</tr>
+<tr>
+<td width="300">Architecture</td>
+<td width="600">64-bit</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+
+> Disclaimer : The stack procedure outlined below has been successfully used in AIRA’s cloud environment and is supported by the Quality Control team. However, if implemented on-premise by the client’s IT staff, AIRA does not guarantee correct functionality.
+
+# Preparing Stack For AIRA Installation
+
+The following instructions can be used to prepare the stack for AIRA installation if you already have the most recent version of CentOS 9.x Core or Desktop installed, have the necessary rights (by typing sudo su and entering the administrator password), and have the necessary files.
+
+Kindly follow the steps that are given below to configure the server.
+
+## Step 1 : Update Server
+
+Make sure that your server is running the latest version. Below given command will update the system without requiring manual confirmation for each package update.
+
+```js
+yum -y update
+```
+
+## Step 2 : Node Installation
+
+This install Node.js, a JavaScript runtime, and npm (Node Package Manager), essential for running JavaScript-based applications.
+
+```js
+yum module  list nodejs
+```
+
+```js
+yum module -y  reset  nodejs
+yum module -y  enable  nodejs:20
+yum module -y  install  nodejs:20/common
+node -v
+```
+
+## Step 3 : Yarn Installation
+
+Yarn is a package manager for Node.js that efficiently manages project dependencies. This step installs Yarn on your system.
+
+```js
+$ curl -sL https://dl.yarnpkg.com/rpm/yarn.repo | sudo tee /etc/yum.repos.d/yarn.repo
+```
+
+```js
+$ sudo yum install yarn
+```
+
+## Step 4 : Remove MariaDB
+
+By default CentOS 9.x comes with some modules of MariaDB installed so we have to remove MariaDB, a database management system.
+
+```js
+$ yum -y remove mariadb*
+```
+
+## Step 5 : Install MySQL 8.4
+
+These steps collectively install MySQL 8.4, make necessary adjustments to the repository configuration for smooth installation, start the MySQL service, and perform additional configuration by modifying the SQL mode. These configurations are crucial for the proper functioning of MySQL in the context of the AIRA server.
+
+### Step 1: Adding the MySQL Yum Repository
+
+**Download the MySQL Yum Repository Configuration RPM :**
+
+```js
+sudo yum install https://dev.mysql.com/get/mysql84-community-release-el9-1.noarch.rpm
+```
+
+**Enable the MySQL Repository :**
+
+```js
+sudo yum config-manager --enable mysql84-community
+```
+
+### Step 2: Installing MySQL Server
+
+**Install MySQL Server and Client :**
+
+```js
+sudo yum install mysql-server
+```
+
+**Start the MySQL Service and Set It to Start on Boot :**
+
+```js
+sudo systemctl start mysqld
+sudo systemctl enable mysqld
+```
+
+**Retrieve the Initial MySQL Root Password:**
+
+```js
+sudo grep 'temporary password' /var/log/mysqld.log | awk '{print $NF}'
+```
+
+**S****ecure Your MySQL Installation :**
+
+```js
+sudo mysql_secure_installation
+```
+
+Follow the prompts to configure your MySQL installation’s security settings, including changing the root password if desired.
+
+**Make sure the mysql service is running by checking its status :**
+
+```js
+$ systemctl status mysqld
+```
+
+The status of the mysql service should be “active (running)”.
+
+![](https://lh7-us.googleusercontent.com/docsz/AD_4nXdvk43YQyxKEJDwpj8mL2lW8WmvBYxWZrWDThZj854I2jO3Jy5OQ9QDFfgiUTvT79sdSDVgXNreCFCVMrAgOXLXE0kRjVBfWQFv2nkTdZY8d5K0rR5nWxvJr_utcv1LzGCPODtwyebVhvKJwaFfpMWvsKVB?key=tYZ60J6GnSVIYdxs-icViw)
+
+### Step 3: Accessing and Configuring MySQL
+
+**Turn off Derived Table Merging Flags :**
+
+```js
+echo "optimizer_switch = derived_merge=off"  >> /etc/my.cnf
+```
+
+**Disable MySQL Strict Mode on the Server :**
+
+```js
+echo 'sql_mode= ""'  >> /etc/my.cnf
+```
+
+**Restart the MySQL Service :**
+
+```js
+systemctl restart mysqld
+```
+
+**Apply mysql_native_password Authentication Plugin :**
+
+```js
+echo "default_authentication_plugin = mysql_native_password"  >> /etc/my.cnf
+```
+
+**Enable MySQL Root Login :**
+
+```js
+mysql -u root -p
+```
+
+**Execute the following SQL commands in the MySQL server:**
+
+```js
+ALTER  USER  'root'@'localhost'  IDENTIFIED  WITH mysql_native_password BY  '{current-password}';
+```
+
+```js
+ALTER  USER  'root'@'%'  IDENTIFIED  WITH mysql_native_password BY  '{current-password}';
+```
+
+Replace your-current-password with the actual root password.
+
+## Step 6 : Install NGINX
+
+The following set of commands and configurations is dedicated to installing NGINX, a popular web server, on a CentOS 9 system.
+
+**Create NGINX Repository Configuration File**
+
+```js
+$ nano /etc/yum.repos.d/nginx.repo
+```
+
+**Add NGINX Repository Information**
+
+```js
+[nginx]
+name=nginx repo
+baseurl=http://nginx.org/packages/rhel/9/$basearch/
+gpgcheck=0
+enabled=1
+```
+
+**Clean YUM Cache and Install NGINX**
+
+yum clean all: Clears the YUM package manager’s cache, ensuring that the latest package information is fetched.
+
+```js
+yum -y install nginx: Installs NGINX on the system.
+```
+
+```js
+$ yum clean all && yum -y install nginx
+```
+
+**S****tart NGINX Service**
+
+```js
+$ systemctl start nginx
+```
+
+**Enable Autostart for NGINX**
+
+```js
+$ systemctl enable nginx
+```
+
+## Step 7 :NGINX Server Configuration
+
+**Backup the Existing NGINX Configuration**
+
+```js
+$ mv /etc/nginx/nginx.conf /etc/nginx/nginx.conf.bk
+```
+
+**Edit NGINX Configuration**
+
+```js
+$ nano /etc/nginx/nginx.conf
+```
+
+**NGINX Configuration Block**
+
+```js
+user nginx;
+worker_processes auto;
+
+error_log /var/log/nginx/error.log warn;
+pid /var/run/nginx.pid;
+
+include /usr/share/nginx/modules/*.conf;
+
+events {
+worker_connections 1024;
+}
+
+http {
+include /etc/nginx/mime.types;
+default_typeapplication/octet-stream;
+
+log_format main '$remote_addr $remote_user [$time_local] "$request" '
+'$status $body_bytes_sent "$http_referer" '
+'"$http_user_agent"  "$http_x_forwarded_for"';
+
+access_log /var/log/nginx/access.log main;
+
+log_format combined_ssl '$remote_addr $remote_user [$time_local] '
+'$ssl_protocol/$ssl_cipher '
+'"$request" $status $body_bytes_sent '
+'"$http_referer"  "$http_user_agent"';
+
+sendfileon;
+tcp_nopush on;
+tcp_nodelayon;
+keepalive_timeout120;
+keepalive_requests 100;
+types_hash_max_size 2048;
+
+#Enable Compression
+gzip on;
+gzip_disable "msie6";
+gzip_vary on;
+gzip_proxied any;
+gzip_comp_level 6;
+gzip_buffers 16  8k;
+gzip_http_version 1.1;
+gzip_types text/css text/plain text/xml text/x-component text/javascript application/x-javascript application/javascript application/json application/xml application/xhtml+xml application/x-font-ttf application/x-font-opentype application/x-font-truetype image/svg+xml image/x-icon image/vnd.microsoft.icon font/ttf font/eot font/otf font/opentype;
+
+include /etc/nginx/conf.d/*.conf;
+
+#Comment out ServerTokens OS
+server_tokens off;
+
+#Prevent ClickJacking Attacks
+add_header X-Frame-Options SAMEORIGIN;
+
+#Load Balancer/Reverse Proxy Header
+real_ip_header X-Forwarded-For;
+set_real_ip_from 0.0.0.0/0;
+}
+```
+
+**Restart NGINX**
+
+```js
+$ systemctl restart nginx
+```
+
+## Step 7 : Creating Python Virtual Environment
+
+**Prerequisite**
+
+-   These instructions are being performed as the root user on CentOS 9 server.
+-   These instructions assume you already have a working installation of Python 3.9.X with pip, on your server. Users can use any method of choice to install python 3.9.X.
+
+## Environment 1 : IDP_VirtualEnv
+
+### Venv
+
+As of Python version 3.9.X a module named Venv has been included in the Python standard library. The Venv module allows us to create virtual environments alongside our base Python installation. This means we do not have to introduce another third-party package or other dependencies to our project to get up and running with an alternative Python virtual environment.
+
+### Step 1 : Create the Virtual Environment
+
+```js
+[root@centos9 ~]# python3 -m venv IDP_VirtualEnv
+```
+
+### Step 2 : Activate the Virtual Environment
+
+```js
+[root@centos9 ~]# source IDP_VirtualEnv/bin/activate
+(IDP_VirtualEnv) [root@centos9 ~]#
+```
+
+### Step 3 : Install Dependency
+
+```js
+pip install transformers==4.25.0
+pip install docquery==0.0.7
+pip install tensorflow==2.12.0
+pip install scikit-learn==1.1.3
+pip install paddlepaddle==2.5.0 paddleocr==2.6.1.3
+pip install ultralyticsplus==0.0.23 ultralytics==8.0.21
+pip install pydantic==1.8.2
+yum install poppler-utils= 22.12.0
+yum install tesseract=4.1.1
+```
+
+Exports an environment variable (TESSDATA_PREFIX) that specifies the path to Tesseract’s tessdata directory.
+
+```js
+export  TESSDATA_PREFIX=/user/share/tesseract/tessdata/
+```
+
+## Environment 2 : Model_VirtualEnv
+
+### Step 1 : Create the Virtual Environment
+
+```js
+[root@centos9 ~]# python3 -m venv Model_VirtualEnv
+```
+
+### Step 2 : Activate the Virtual Environment
+
+```js
+[root@centos9 ~]# source Model_VirtualEnv/bin/activate
+(Model_VirtualEnv) [root@centos9 ~]#
+```
+
+### Step 3 : Install Dependency
+
+```js
+pip install ydata-profiling==4.1.1
+pip install xgboost==1.7.4
+```
+
+## Step 8 : Firewall Configuration
+
+**Install and Start Firewalld**
+
+-   Installs the firewalld package, which is a dynamic firewall manager for Linux.
+-   Starts the firewalld service immediately.
+-   Configures firewalld to start at boot, ensuring it automatically starts on system reboot.
+
+```js
+yum -y install firewalld
+systemctl start firewalld
+systemctl enable firewalld
+```
+
+**Open Required Ports in Firewall**
+
+-   Opens port 8080 for orchestrator engine API
+-   Opens port 3306 for MySQL.
+-   Opens port 443 (HTTPS) in the public zone permanently.
+-   Reloads the firewall configuration to apply the changes
+
+```js
+firewall-cmd --add-port=3306/tcp --permanent
+firewall-cmd --zone=public --add-port=443/tcp --permanent
+firewall-cmd --add-port=8080/tcp --permanent
+firewall-cmd --reload
+```
+
+**Disable SELinux for HTTP Network Connection**
+
+Adjusts the SELinux boolean to allow the Apache HTTP Server (httpd) to make network connections. This is necessary for the server to communicate over the network.
+
+```js
+setsebool -P httpd_can_network_connect 1
+```
+
+![Footer](https://github.com/airacommunity/AIRA-Installation/assets/153823636/f78c5168-fae6-4a12-a01d-8e98fe7d7ae2)
