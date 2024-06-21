@@ -24,7 +24,7 @@ For any questions or issues, please open an issue in this repository or contact 
 
 ---
 
-### Example Document Links
+### Document Links
 
 - [Overview](https://github.com/airacommunity/AIRA-Installation/blob/main/1.%20Overview.md)
 - [Server Configuration](https://github.com/airacommunity/AIRA-Installation/blob/main/2.%20Server%20Configuration.md)
