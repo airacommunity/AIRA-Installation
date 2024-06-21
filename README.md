@@ -29,3 +29,5 @@ For any questions or issues, please open an issue in this repository or contact 
 - [Overview](https://github.com/airacommunity/AIRA-Installation/blob/main/1.%20Overview.md)
 - [Server Configuration](https://github.com/airacommunity/AIRA-Installation/blob/main/2.%20Server%20Configuration.md)
 - [Aira Installation](https://github.com/airacommunity/AIRA-Installation/blob/main/3.%20AIRA%20Installation.md)
+- [Deployment Breakdown](https://github.com/airacommunity/AIRA-Installation/blob/main/4.%20Deployment%20Breakdown.md)
+
