@@ -20,9 +20,6 @@ Once the server is configured, you can proceed with the installation of Aira. De
 
 ---
 
-For any questions or issues, please open an issue in this repository or contact the maintainers.
-
----
 
 ### Document Links
 
@@ -31,3 +28,8 @@ For any questions or issues, please open an issue in this repository or contact 
 - [Aira Installation](https://github.com/airacommunity/AIRA-Installation/blob/main/3.%20AIRA%20Installation.md)
 - [Deployment Breakdown](https://github.com/airacommunity/AIRA-Installation/blob/main/4.%20Deployment%20Breakdown.md)
 
+----
+
+## Support
+
+For support or inquiries regarding these installation, please contact our support team at connect@aira.fr or visit our [website](www.aira.fr).
